@@ -20,7 +20,7 @@ const createCard = (req, res) => {
   const userId = req.user._id;
   Card.create({ name, link, owner: userId })
     .then((card) => {
-       res
+      res
         .status(POSITIVE_STATUS)
         .send(card);
     })
