@@ -1,5 +1,7 @@
 const User = require('../models/user');
-const { BAD_REQUEST_ERROR, NOT_FOUND_ERROR, INTERNAL_SERVER_ERROR } = require('../utils/constants');
+const {
+  BAD_REQUEST_ERROR, NOT_FOUND_ERROR, INTERNAL_SERVER_ERROR, POSITIVE_STATUS,
+} = require('../utils/constants');
 
 const getUsers = (req, res) => {
   User.find({})
@@ -42,7 +44,9 @@ const createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
     .then((user) => {
-      res.send(user);
+     res
+        .status(POSITIVE_STATUS)
+        .send(user);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -111,10 +115,6 @@ const updateUserAvatar = (req, res) => {
         .status(INTERNAL_SERVER_ERROR)
         .send({ message: 'На сервере произошла ошибка' });
     });
-};
-
-module.exports.createCard = (req) => {
-  console.log(req.user._id); // _id станет доступен
 };
 
 module.exports = {

@@ -1,5 +1,7 @@
 const Card = require('../models/card');
-const { BAD_REQUEST_ERROR, NOT_FOUND_ERROR, INTERNAL_SERVER_ERROR } = require('../utils/constants');
+const {
+  BAD_REQUEST_ERROR, NOT_FOUND_ERROR, INTERNAL_SERVER_ERROR, POSITIVE_STATUS,
+} = require('../utils/constants');
 
 const getCards = (req, res) => {
   Card.find({})
@@ -18,7 +20,9 @@ const createCard = (req, res) => {
   const userId = req.user._id;
   Card.create({ name, link, owner: userId })
     .then((card) => {
-      res.send(card);
+       res
+        .status(POSITIVE_STATUS)
+        .send(card);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
