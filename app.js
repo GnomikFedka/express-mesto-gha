@@ -1,20 +1,33 @@
 const express = require('express');
-
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-
-process.on('uncaughtException', (err) => {
-  console.log(err);
-});
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { errors, Joi, celebrate } = require('celebrate');
+const { login, createUser } = require('./controllers/users');
+const auth = require('./middlewares/auth');
+const errorHandler = require('./middlewares/errorsHandler');
+const NotFoundError = require('./errors/not-found-err');
+const { URL_REGEX } = require('./utils/constants');
 
 const { PORT = 3000 } = process.env;
-
-const { NOT_FOUND_ERROR } = require('./utils/constants');
 
 const app = express();
 
 const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
+
+app.use(helmet());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
 
 mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
   useNewUrlParser: true,
@@ -22,19 +35,38 @@ mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
 
 app.use(bodyParser.json());
 
-app.use((req, res, next) => {
-  req.user = {
-    _id: '64e89d9c013056d35ee2a551',
-  };
+app.use(cookieParser());
 
-  next();
-});
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string().regex(URL_REGEX),
+  }),
+}), createUser);
+
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required(),
+  }),
+}), login);
+
+app.use(auth);
 
 app.use('/users', usersRouter);
+
 app.use('/cards', cardsRouter);
-app.use('/*', (req, res) => {
-  res.status(NOT_FOUND_ERROR).send({ message: 'Запрошен несуществующий роут' });
+
+app.use('/*', (req, res, next) => {
+  next(new NotFoundError('Запрашиваемый роут не найден'));
 });
+
+app.use(errors());
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
