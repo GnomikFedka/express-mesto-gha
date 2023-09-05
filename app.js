@@ -18,6 +18,14 @@ const app = express();
 const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
 
+app.use((req, res, next) => {
+  req.user = {
+    _id: '64e89d9c013056d35ee2a551',
+  };
+
+  next();
+});
+
 app.use(helmet());
 
 const limiter = rateLimit({
